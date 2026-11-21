@@ -47,6 +47,14 @@ button:disabled { opacity: .35; cursor: default; }
 .spacer { flex: 1; }
 .tool-group { display: flex; gap: 6px; }
 #previewBtn.active { background: var(--accent); border-color: var(--accent); }
+#bgSelect {
+  font-family: inherit; font-size: 13px; color: var(--text);
+  background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 8px; cursor: pointer;
+}
+#bgSelect option { background: var(--panel-solid); color: var(--text); }
+.icon-btn { padding: 6px 9px; font-size: 14px; line-height: 1; }
+.icon-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
 
 .page-tabs { display: flex; gap: 6px; max-width: 46vw; overflow-x: auto; }
 .page-tabs::-webkit-scrollbar { height: 0; }

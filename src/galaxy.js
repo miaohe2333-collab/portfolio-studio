@@ -125,7 +125,7 @@ export function initGalaxy(canvas) {
   const gl = canvas.getContext('webgl', { antialias: true, alpha: false, premultipliedAlpha: false });
   if (!gl) {
     canvas.style.background = 'radial-gradient(circle at 50% 40%, #171032 0%, #06040f 70%)';
-    return;
+    return { hasAudio: false, dispose() {} };
   }
   const prog = gl.createProgram();
   gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT));
@@ -166,8 +166,10 @@ export function initGalaxy(canvas) {
   window.addEventListener('resize', resize);
   resize();
 
+  let rafId = 0, running = true;
   const start = performance.now();
   function frame(now) {
+    if (!running) return;
     const t = (now - start) / 1000;
     resize();
     const bob = Math.sin(t * 0.25) * 0.8;
@@ -175,7 +177,12 @@ export function initGalaxy(canvas) {
     gl.uniform1f(uTime, t);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.POINTS, 0, PARTICLES);
-    requestAnimationFrame(frame);
+    rafId = requestAnimationFrame(frame);
   }
-  requestAnimationFrame(frame);
+  rafId = requestAnimationFrame(frame);
+
+  return {
+    hasAudio: false,
+    dispose() { running = false; cancelAnimationFrame(rafId); window.removeEventListener('resize', resize); },
+  };
 }

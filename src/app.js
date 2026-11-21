@@ -1,6 +1,7 @@
 // app.js — the editor: pages, shared asset library, canvas transforms, layer panel,
 // undo/redo, autosave, preview, import/export, cross-window sync.
 import { initGalaxy } from './galaxy.js';
+import { initFlowers } from './flowers.js';
 import { DB } from './db.js';
 
 const CANVAS_W = 1600, CANVAS_H = 900;
@@ -16,6 +17,8 @@ let selectedId = null;
 let history = [], future = [];
 let gesture = null;
 let saveTimer = null;
+let bg = null;          // current background effect handle { hasAudio, dispose, toggleSound? }
+let bgType = null;      // 'flowers' | 'galaxy'
 
 // DOM
 const canvasEl = $('#canvas');
@@ -540,7 +543,38 @@ function fitCanvas() {
 }
 window.addEventListener('resize', fitCanvas);
 
+// ---------------- background effect (galaxy / flower valley) ----------------
+function mountBackground(type) {
+  if (type !== 'flowers' && type !== 'galaxy') type = 'flowers';
+  if (bg && bgType === type) return;
+  if (bg) { bg.dispose(); bg = null; }
+  const old = document.getElementById('galaxy');
+  const fresh = document.createElement('canvas');   // clean WebGL context per effect
+  fresh.id = 'galaxy';
+  old.replaceWith(fresh);
+  bg = type === 'galaxy' ? initGalaxy(fresh) : initFlowers(fresh);
+  bgType = type;
+  const sb = $('#soundBtn');
+  sb.style.display = bg.hasAudio ? '' : 'none';
+  sb.setAttribute('aria-pressed', 'false');
+  sb.textContent = '🔇';
+  const sel = $('#bgSelect');
+  if (sel.value !== type) sel.value = type;
+}
+
 // ---------------- wire toolbar ----------------
+$('#bgSelect').addEventListener('change', (e) => {
+  project.background = e.target.value;
+  mountBackground(project.background);
+  scheduleSave();
+});
+$('#soundBtn').addEventListener('click', () => {
+  if (!bg || !bg.hasAudio || !bg.toggleSound) return;
+  const playing = bg.toggleSound();
+  const sb = $('#soundBtn');
+  sb.setAttribute('aria-pressed', String(playing));
+  sb.textContent = playing ? '🔊' : '🔇';
+});
 $('#undoBtn').addEventListener('click', undo);
 $('#redoBtn').addEventListener('click', redo);
 $('#previewBtn').addEventListener('click', () => togglePreview());
@@ -571,6 +605,10 @@ DB.onSync(async (type) => {
   const p = await DB.loadProject();
   if (p) { project = p; if (!project.pages.find(pg => pg.id === project.activePageId)) project.activePageId = project.pages[0].id; }
   if (!layerById(selectedId)) selectedId = null;
+  if (project.background && project.background !== bgType) {
+    $('#bgSelect').value = project.background;
+    mountBackground(project.background);
+  }
   renderAll();
   toast('已同步其他窗口的更改');
 });
@@ -579,15 +617,17 @@ window.addEventListener('beforeunload', () => { DB.saveProject(project); });
 
 // ---------------- boot ----------------
 async function boot() {
-  initGalaxy($('#galaxy'));
   await reloadAssets();
   project = await DB.loadProject();
   if (!project || !project.pages?.length) {
-    project = { version: 1, pages: [{ id: uid(), name: '首页', layers: [] }], activePageId: null };
+    project = { version: 1, background: 'flowers', pages: [{ id: uid(), name: '首页', layers: [] }], activePageId: null };
     project.activePageId = project.pages[0].id;
     await DB.saveProject(project);
   }
+  if (!project.background) { project.background = 'flowers'; scheduleSave(); }
   if (!project.pages.find(p => p.id === project.activePageId)) project.activePageId = project.pages[0].id;
+  $('#bgSelect').value = project.background;
+  mountBackground(project.background);
   renderAll();
   fitCanvas();
 }
