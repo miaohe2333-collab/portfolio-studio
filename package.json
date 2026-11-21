@@ -1,0 +1,9 @@
+{
+  "name": "portfolio-studio",
+  "version": "1.0.0",
+  "description": "A simple personal layout editor for a portfolio homepage, with an animated galaxy backdrop.",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8787"
+  }
+}
